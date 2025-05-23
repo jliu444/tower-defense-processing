@@ -7,7 +7,7 @@ public class Game {
   private boolean is_game_over;
   
   private Tower[] towers;
-  private int[] map;
+  private GridType[][] map;
   
   public Game() {
     base_health = 0;
@@ -17,13 +17,27 @@ public class Game {
     is_game_over = false;
     
     towers = new Tower[MAX_TOWERS];
-    map = new int[20][20];
+    map = new GridType[20][20];
+  }
+  
+  private void init_map() {
+    
+  }
+  
+  public void draw_game() {
+    
+  }
+  
+  private void draw_towers() {
+    
   }
   
   public void update() {
     
   }
   
-  private void placeTower
+  private void placeTower() {
+    
+  }
   
 }
