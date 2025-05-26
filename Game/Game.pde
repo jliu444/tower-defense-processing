@@ -1,39 +1,87 @@
+import java.util.Arrays;
+
 public class Game {
   private final int MAX_TOWERS = 15;
+  private final int MAX_ENEMIES = 100;
+  private final int SIDE_BAR_LEN = 400;
   private final int GRID_LEN = 20;
-  private final int SQ_SIZE = min(width, height) / GRID_LEN;
+  private final int SQ_SIZE = min(width - SIDE_BAR_LEN, height) / GRID_LEN;
   private final PVector[] DIRECTIONS = { 
-    new PVector(0, -1), new PVector(1, 0), new PVector(0, 1), new PVector(-1, 0)
+    new PVector(0, -1), // north
+    new PVector(1, 0), // east
+    new PVector(0, 1), // south
+    new PVector(-1, 0) // west
   };
+
+  private boolean mouse_clicked;
+
+  private boolean is_placing_tower; 
+  private Tower tower_being_placed;
+
+  private Button shop_left, shop_right, buy;
+  private int curr_tower_idx;
   
-  private int base_health;
+  private float base_health;
   private int wave;
-  private int currency;
+  private int cash;
+
+  private int num_towers;
+  private int num_enemies;
   
-  private boolean is_game_over;
-  
-  private Tower[] towers;
+  private ArrayList<Tower> active_towers;
+  private ArrayList<Enemy> enemies;
   private GridType[][] map;
+
+  private Tower[] shop_towers;
+
   PVector enemy_spawn, base; // x is row num on map, y is col num
   
   public Game() {
-    base_health = 0;
+    mouse_clicked = false;
+
+    is_placing_tower = false;
+    tower_being_placed = null;
+
+    shop_left = new Button(width - 350, 625, 50, 50, 
+                           color(24, 85, 184), 
+                           color(54, 104, 186), 
+                           color(73, 118, 191),
+                           loadImage("left_arrow.png"));
+
+    shop_right = new Button(width - 100, 625, 50, 50, 
+                           color(24, 85, 184), 
+                           color(54, 104, 186), 
+                           color(73, 118, 191),
+                           loadImage("right_arrow.png"));
+                           
+    buy = new Button(width - 250, 625, 100, 50, 
+                           color(24, 85, 184), 
+                           color(54, 104, 186), 
+                           color(73, 118, 191),
+                           loadImage("buy.png"));
+
+    curr_tower_idx = 0;
+
+    base_health = 100.0;
     wave = 0;
-    currency = 0;
+    cash = 100;
     
-    is_game_over = false;
-    
-    towers = new Tower[MAX_TOWERS];
+    active_towers = new ArrayList<Tower>();
+    num_towers = 0;
+
+    enemies = new ArrayList<Enemy>();
+    num_enemies = 0;
+
+    shop_towers = new Tower[2];
+    shop_towers[0] = new Tower(12.0, 10, 100, null, 50, loadImage("machine_gun_tower.png"));
+
     init_map();
   }
   
   private void init_map() {
     map = new GridType[GRID_LEN][GRID_LEN];
-    for (int i = 0; i < GRID_LEN; ++i) {
-      for(int j = 0; j < GRID_LEN; ++j) {
-        map[i][j] = GridType.EMPTY;
-      }
-    }
+    for (GridType[] row : map)
+      Arrays.fill(row, GridType.EMPTY);
     
     enemy_spawn = new PVector(0, 0);
     base = new PVector(0, 0);
@@ -60,32 +108,23 @@ public class Game {
     for (PVector dir : DIRECTIONS) 
       possible_dirs.add(dir);
 
-    if (base.y == GRID_LEN - 1) {
-      possible_dirs.remove(DIRECTIONS[0]);
-    } else if (base.x == GRID_LEN - 1) {
-      possible_dirs.remove(DIRECTIONS[3]);
-    }
+    if (base.y == GRID_LEN - 1) possible_dirs.remove(DIRECTIONS[0]);
+    else if (base.x == GRID_LEN - 1) possible_dirs.remove(DIRECTIONS[3]);
     
     ArrayList<PVector> dirs = new ArrayList<PVector>(possible_dirs);
 
     PVector curr = enemy_spawn;
     PVector prev_move = null;
+
     while(curr.x != base.x || curr.y != base.y) {
       possible_dirs = new ArrayList<PVector>(dirs);
-      if (curr.x == GRID_LEN - 1)
-        possible_dirs.remove(DIRECTIONS[1]);
 
-      if (curr.x == 0)
-        possible_dirs.remove(DIRECTIONS[3]);
+      if (curr.x == GRID_LEN - 1) possible_dirs.remove(DIRECTIONS[1]);
+      if (curr.x == 0) possible_dirs.remove(DIRECTIONS[3]);
+      if (curr.y == GRID_LEN - 1) possible_dirs.remove(DIRECTIONS[2]);
+      if (curr.y == 0) possible_dirs.remove(DIRECTIONS[0]);
 
-      if (curr.y == GRID_LEN - 1)
-        possible_dirs.remove(DIRECTIONS[2]);
-
-      if (curr.y == 0)
-        possible_dirs.remove(DIRECTIONS[0]);
-
-      if (prev_move != null)
-        possible_dirs.remove(PVector.mult(prev_move, -1)); // don't move backwards
+      if (prev_move != null) possible_dirs.remove(PVector.mult(prev_move, -1)); // don't move backwards
       
       // once against wall, go toward base  
       PVector dir = possible_dirs.get((int)random(possible_dirs.size()));
@@ -106,12 +145,18 @@ public class Game {
   }
   
   public void draw_game() {
+    if (is_game_over())
+      game_over();
+
     draw_map();
     draw_towers();
+    draw_enemies();
+    draw_UI();
   }
 
   private void draw_map() {
     int curr_x = 0, curr_y = 0;
+
     while (curr_y + SQ_SIZE <= height) {
       switch (map[curr_y / SQ_SIZE][curr_x / SQ_SIZE]) {
         case EMPTY: stroke(43, 143, 46); fill(43, 143, 46); break;
@@ -120,9 +165,10 @@ public class Game {
         case ENEMY_SPAWN: stroke(255, 0, 0); fill(255, 0, 0); break;
         case BASE: stroke(0, 0, 255); fill(0, 0, 255); break;
       }
+
       square(curr_x, curr_y, SQ_SIZE);
       
-      if (curr_x + SQ_SIZE >= width) {
+      if (curr_x + SQ_SIZE >= width - SIDE_BAR_LEN) {
         curr_x = 0;
         curr_y += SQ_SIZE;
       } else {
@@ -132,15 +178,113 @@ public class Game {
   }
   
   private void draw_towers() {
-    
+    for (Tower t : active_towers)
+      t.draw_tower();
   }
-  
+
+  private void draw_enemies() {
+    for (Enemy e : enemies)
+      e.draw_enemy();
+  }
+
+  private void draw_UI() {
+    textSize(50);
+    fill(0);
+    text("Cash: $" + cash, width - 245, 50);
+    text("HP: " + base_health, width - 245, 100);
+    text("Wave: " + wave, width - 245, 150);
+
+    draw_shop();
+  }
+
+  private void draw_shop() {
+    shop_left.draw_button();
+    shop_right.draw_button();
+    buy.draw_button();
+
+    fill(0);
+    rect(width - 350, 300, 300, 300);
+    image(shop_towers[curr_tower_idx].get_texture_large(), width - 350, 300);
+  }
+
   public void update() {
-    
+    if (is_game_over()) {
+      // placeholder
+      return;
+    }
+
+    update_towers();
+    update_enemies();
+    update_buttons();
+
+    if (is_placing_tower) {
+      placeTower();
+    }
+
+    mouse_clicked = false;
+  }
+
+  private void update_towers() {
+    for (Tower t : active_towers)
+      t.update_tower();
+  }
+
+  private void update_enemies() {
+    for (Enemy e : enemies)
+      e.update_enemy();
+  }
+
+  private void update_buttons() {
+    if (mouse_clicked && buy.mouse_in_button()) {
+      mouse_clicked = false;
+      is_placing_tower = true;
+      tower_being_placed = new Tower(shop_towers[curr_tower_idx]);
+    }
   }
   
   private void placeTower() {
-    
+    PVector tower_pos = snap_to_grid(
+      new PVector(mouseX - SQ_SIZE / 2, mouseY - SQ_SIZE / 2)
+    );
+
+    int row_idx = (int)tower_pos.y / SQ_SIZE;
+    int col_idx = (int)tower_pos.x / SQ_SIZE;
+
+    if (row_idx >= 0 && row_idx < map.length && col_idx >= 0 && col_idx < map[0].length) { 
+      if (map[row_idx][col_idx] == GridType.EMPTY) {
+        tint(255, 128);
+        image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
+        tint(255, 255);
+
+        if (mouse_clicked) {
+          mouse_clicked = false;
+          is_placing_tower = false;
+          cash -= tower_being_placed.get_price();
+          active_towers.add(tower_being_placed);
+          active_towers.get(active_towers.size() - 1).set_position(tower_pos);
+          tower_being_placed = null;
+        }
+      }
+    }
+  }
+
+  private PVector snap_to_grid(PVector pos) {
+    return new PVector(
+      SQ_SIZE * round(pos.x / SQ_SIZE), 
+      SQ_SIZE * round(pos.y / SQ_SIZE)
+    );
+  }
+
+  private boolean is_game_over() {
+    return base_health <= 0;
+  }
+
+  private void game_over() {
+
+  }
+
+  public void set_mouse_clicked(boolean mouse_clicked) {
+    this.mouse_clicked = mouse_clicked;
   }
   
 }

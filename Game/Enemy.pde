@@ -25,7 +25,7 @@ public class Enemy {
     
    }
 
-   public void update_enemy() [
+   public void update_enemy() {
 
-   ]
+   }
 }
