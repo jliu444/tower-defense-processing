@@ -13,6 +13,9 @@ public class Game {
     new PVector(-1, 0) // west
   };
 
+  private final int SECOND = 1000; // milliseconds in a second
+  private int prev_frame_time, curr_frame_time;
+
   private boolean mouse_clicked;
 
   private boolean is_placing_tower; 
@@ -33,10 +36,14 @@ public class Game {
   private GridType[][] map;
 
   private Tower[] shop_towers;
+  private Enemy[] enemy_types;
 
   PVector enemy_spawn, base; // x is row num on map, y is col num
   
   public Game() {
+    prev_frame_time = 0;
+    curr_frame_time = millis();
+
     mouse_clicked = false;
 
     is_placing_tower = false;
@@ -46,25 +53,25 @@ public class Game {
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("left_arrow.png"));
+                           loadImage("images/left_arrow.png"));
 
     shop_right = new Button(width - 100, 625, 50, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("right_arrow.png"));
+                           loadImage("images/right_arrow.png"));
                            
     buy = new Button(width - 250, 625, 100, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("buy.png"));
+                           loadImage("images/buy.png"));
 
     curr_tower_idx = 0;
 
     base_health = 100.0;
     wave = 0;
-    cash = 100;
+    cash = 100000;
     
     active_towers = new ArrayList<Tower>();
     num_towers = 0;
@@ -73,7 +80,14 @@ public class Game {
     num_enemies = 0;
 
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower(12.0, 10, 100, null, 50, loadImage("machine_gun_tower.png"));
+    shop_towers[0] = new Tower(12.0, 10, 100, null, 50, loadImage("images/machine_gun_tower.png"));
+    shop_towers[1] = new Tower(12.0, 100, 100, null, 100, loadImage("images/laser_tower.png"));
+
+    enemy_types = new Enemy[4];
+    enemy_types[0] = new Enemy(24.0, 5.0, .3, null, null, loadImage("images/slime.png"));
+    enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"));
+    enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"));
+    enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"));
 
     init_map();
   }
@@ -148,6 +162,9 @@ public class Game {
     if (is_game_over())
       game_over();
 
+    prev_frame_time = curr_frame_time;
+    curr_frame_time = millis();
+
     draw_map();
     draw_towers();
     draw_enemies();
@@ -159,8 +176,8 @@ public class Game {
 
     while (curr_y + SQ_SIZE <= height) {
       switch (map[curr_y / SQ_SIZE][curr_x / SQ_SIZE]) {
-        case EMPTY: stroke(43, 143, 46); fill(43, 143, 46); break;
-        case OCCUPIED: stroke(0); fill(0); break; // will be drawn by draw_towers() 
+        case EMPTY:
+        case OCCUPIED: stroke(43, 143, 46); fill(43, 143, 46); break; // will be drawn by draw_towers() 
         case ENEMY_PATH: stroke(54, 43, 43); fill(54, 43, 43); break;
         case ENEMY_SPAWN: stroke(255, 0, 0); fill(255, 0, 0); break;
         case BASE: stroke(0, 0, 255); fill(0, 0, 255); break;
@@ -190,9 +207,15 @@ public class Game {
   private void draw_UI() {
     textSize(50);
     fill(0);
-    text("Cash: $" + cash, width - 245, 50);
-    text("HP: " + base_health, width - 245, 100);
-    text("Wave: " + wave, width - 245, 150);
+    textAlign(RIGHT);
+    text("Cash: $" + cash, width - 50, 50);
+    text("HP: " + base_health, width - 50, 100);
+    text("Wave: " + wave, width - 50, 150);
+    text(
+      "Next wave in: " + (wave == 0 ? (10 * SECOND - millis() % (10 * SECOND)) / SECOND
+                                    : (30 * SECOND - (millis() - 10 * SECOND) % (30 * SECOND)) / SECOND),
+                                      width - 50, 200
+    );
 
     draw_shop();
   }
@@ -213,6 +236,9 @@ public class Game {
       return;
     }
 
+    update_wave();
+    spawn_enemies();
+
     update_towers();
     update_enemies();
     update_buttons();
@@ -224,6 +250,23 @@ public class Game {
     mouse_clicked = false;
   }
 
+  private void update_wave() {
+    if (wave == 0 && millis() >= 10 * SECOND)
+      ++wave;
+
+    else if (millis() >= 10 * SECOND && (millis() - 10 * SECOND) % (30 * SECOND) == 0)
+      ++wave;
+  }
+
+  private void spawn_enemies() {
+    if (enemies.size() < 1) {
+      enemies.add(new Enemy(enemy_types[0]));
+      Enemy curr = enemies.get(enemies.size() - 1);
+      enemies.get(enemies.size() - 1).set_position(enemy_spawn);
+      enemies.get(enemies.size() - 1).set_direction(new PVector(1.0, 0.0));
+    }
+  }
+
   private void update_towers() {
     for (Tower t : active_towers)
       t.update_tower();
@@ -231,15 +274,20 @@ public class Game {
 
   private void update_enemies() {
     for (Enemy e : enemies)
-      e.update_enemy();
+      e.update_enemy(curr_frame_time - prev_frame_time);
   }
 
   private void update_buttons() {
     if (mouse_clicked && buy.mouse_in_button()) {
-      mouse_clicked = false;
       is_placing_tower = true;
       tower_being_placed = new Tower(shop_towers[curr_tower_idx]);
     }
+
+    if (mouse_clicked && shop_left.mouse_in_button())
+      curr_tower_idx = (curr_tower_idx - 1 + shop_towers.length) % shop_towers.length; 
+    
+    if (mouse_clicked && shop_right.mouse_in_button())
+      curr_tower_idx = (curr_tower_idx + 1) % shop_towers.length;
   }
   
   private void placeTower() {
@@ -251,19 +299,19 @@ public class Game {
     int col_idx = (int)tower_pos.x / SQ_SIZE;
 
     if (row_idx >= 0 && row_idx < map.length && col_idx >= 0 && col_idx < map[0].length) { 
-      if (map[row_idx][col_idx] == GridType.EMPTY) {
-        tint(255, 128);
-        image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
-        tint(255, 255);
+      GridType curr_grid = map[row_idx][col_idx];
+      if (curr_grid == GridType.EMPTY) tint(255, 128);
+      else tint(209, 8, 28, 128);
+      image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
+      tint(255, 255);
 
-        if (mouse_clicked) {
-          mouse_clicked = false;
-          is_placing_tower = false;
-          cash -= tower_being_placed.get_price();
-          active_towers.add(tower_being_placed);
-          active_towers.get(active_towers.size() - 1).set_position(tower_pos);
-          tower_being_placed = null;
-        }
+      if (mouse_clicked && curr_grid == GridType.EMPTY && cash >= tower_being_placed.get_price()) {
+        is_placing_tower = false;
+        cash -= tower_being_placed.get_price();
+        active_towers.add(tower_being_placed);
+        active_towers.get(active_towers.size() - 1).set_position(tower_pos);
+        map[row_idx][col_idx] = GridType.OCCUPIED;
+        tower_being_placed = null;
       }
     }
   }
