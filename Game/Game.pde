@@ -84,7 +84,7 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, null, 100, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .3, null, null, loadImage("images/slime.png"));
+    enemy_types[0] = new Enemy(24.0, 5.0, .01, null, null, loadImage("images/slime.png"));
     enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"));
     enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"));
     enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"));
@@ -113,6 +113,7 @@ public class Game {
 
     map[(int)enemy_spawn.y][(int)enemy_spawn.x] = GridType.ENEMY_SPAWN;
     map[(int)base.y][(int)base.x] = GridType.BASE;
+    println(enemy_spawn.x + ", " + enemy_spawn.y + " " + base.x + ", " + base.y);
     
     generate_enemy_path();
   }
@@ -127,7 +128,7 @@ public class Game {
     
     ArrayList<PVector> dirs = new ArrayList<PVector>(possible_dirs);
 
-    PVector curr = enemy_spawn;
+    PVector curr = new PVector(enemy_spawn.x, enemy_spawn.y);
     PVector prev_move = null;
 
     while(curr.x != base.x || curr.y != base.y) {
@@ -260,10 +261,11 @@ public class Game {
 
   private void spawn_enemies() {
     if (enemies.size() < 1) {
-      enemies.add(new Enemy(enemy_types[0]));
-      Enemy curr = enemies.get(enemies.size() - 1);
-      enemies.get(enemies.size() - 1).set_position(enemy_spawn);
-      enemies.get(enemies.size() - 1).set_direction(new PVector(1.0, 0.0));
+      Enemy to_spawn = new Enemy(enemy_types[0]);
+      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
+      println(enemy_spawn.x + ", " + enemy_spawn.y);
+      to_spawn.set_direction(new_direction(enemy_spawn));
+      enemies.add(to_spawn);
     }
   }
 
@@ -273,9 +275,26 @@ public class Game {
   }
 
   private void update_enemies() {
-    for (Enemy e : enemies)
+    for (Enemy e : enemies) {
+      
       e.update_enemy(curr_frame_time - prev_frame_time);
+    }
   }
+  
+  private PVector new_direction(PVector pos) {
+    PVector new_dir = null;
+    float min_dist = Float.MAX_VALUE;
+    
+    for (PVector dir : DIRECTIONS) {
+      PVector new_pos = PVector.add(pos, dir);
+      if (is_valid_pos(pos) && dist(new_pos, base) < min_dist) {
+        new_dir = dir;
+      }
+    }
+    
+    return new_dir;
+  }
+  
 
   private void update_buttons() {
     if (mouse_clicked && buy.mouse_in_button()) {
@@ -335,4 +354,7 @@ public class Game {
     this.mouse_clicked = mouse_clicked;
   }
   
+  private boolean is_valid_pos(PVector pos) {
+    return pos.x >= 0 && pos.x < map[0].length && pos.y >= 0 && pos.y < map.length;
+  }
 }
