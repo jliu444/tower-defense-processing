@@ -1,11 +1,8 @@
 public class Tower {
-  private float power;
-  private float fire_rate;
+  private float power, fire_rate, range;
   private int price;
   private PVector position;
-  private float range;
-  private PImage texture_large;
-  private PImage texture_small;
+  private PImage texture_large, texture_small;
   
   public Tower(float power, float fire_rate, int price, PVector position, float range, PImage texture) {
     this.power = power;

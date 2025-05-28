@@ -244,7 +244,7 @@ public class Game {
     update_buttons();
 
     if (is_placing_tower) {
-      placeTower();
+      place_tower();
     }
 
     mouse_clicked = false;
@@ -290,7 +290,7 @@ public class Game {
       curr_tower_idx = (curr_tower_idx + 1) % shop_towers.length;
   }
   
-  private void placeTower() {
+  private void place_tower() {
     PVector tower_pos = snap_to_grid(
       new PVector(mouseX - SQ_SIZE / 2, mouseY - SQ_SIZE / 2)
     );
