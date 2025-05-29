@@ -238,7 +238,7 @@ public class Game {
     }
 
     update_wave();
-    spawn_enemies();
+    //spawn_enemies();
 
     update_towers();
     update_enemies();
@@ -259,15 +259,15 @@ public class Game {
       ++wave;
   }
 
-  private void spawn_enemies() {
-    if (enemies.size() < 1) {
-      Enemy to_spawn = new Enemy(enemy_types[0]);
-      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
-      println(enemy_spawn.x + ", " + enemy_spawn.y);
-      to_spawn.set_direction(new_direction(enemy_spawn));
-      enemies.add(to_spawn);
-    }
-  }
+  //private void spawn_enemies() {
+  //  if (enemies.size() < 1) {
+  //    Enemy to_spawn = new Enemy(enemy_types[0]);
+  //    to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
+  //    println(enemy_spawn.x + ", " + enemy_spawn.y);
+  //    to_spawn.set_direction(new_direction(enemy_spawn));
+  //    enemies.add(to_spawn);
+  //  }
+  //}
 
   private void update_towers() {
     for (Tower t : active_towers)
@@ -281,19 +281,19 @@ public class Game {
     }
   }
   
-  private PVector new_direction(PVector pos) {
-    PVector new_dir = null;
-    float min_dist = Float.MAX_VALUE;
+  //private PVector new_direction(PVector pos) {
+  //  PVector new_dir = null;
+  //  float min_dist = Float.MAX_VALUE;
     
-    for (PVector dir : DIRECTIONS) {
-      PVector new_pos = PVector.add(pos, dir);
-      if (is_valid_pos(pos) && dist(new_pos, base) < min_dist) {
-        new_dir = dir;
-      }
-    }
+  //  for (PVector dir : DIRECTIONS) {
+  //    PVector new_pos = PVector.add(pos, dir);
+  //    if (is_valid_pos(pos) && dist(new_pos, base) < min_dist) {
+  //      new_dir = dir;
+  //    }
+  //  }
     
-    return new_dir;
-  }
+  //  return new_dir;
+  //}
   
 
   private void update_buttons() {
