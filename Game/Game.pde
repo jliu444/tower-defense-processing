@@ -34,6 +34,9 @@ public class Game {
   private ArrayList<Tower> active_towers;
   private ArrayList<Enemy> enemies;
   private GridType[][] map;
+  
+  private ArrayList<PVector> dir_list;
+  private boolean[][] visited; // for dir_list
 
   private Tower[] shop_towers;
   private Enemy[] enemy_types;
@@ -84,10 +87,10 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, null, 100, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .01, null, null, loadImage("images/slime.png"));
-    enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"));
-    enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"));
-    enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"));
+    enemy_types[0] = new Enemy(24.0, 5.0, .01, null, null, loadImage("images/slime.png"), SQ_SIZE);
+    enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"), SQ_SIZE);
+    enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"), SQ_SIZE);
+    enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"), SQ_SIZE);
 
     init_map();
   }
@@ -113,7 +116,6 @@ public class Game {
 
     map[(int)enemy_spawn.y][(int)enemy_spawn.x] = GridType.ENEMY_SPAWN;
     map[(int)base.y][(int)base.x] = GridType.BASE;
-    println(enemy_spawn.x + ", " + enemy_spawn.y + " " + base.x + ", " + base.y);
     
     generate_enemy_path();
   }
@@ -157,6 +159,35 @@ public class Game {
       if (curr.x != base.x || curr.y != base.y)
         map[(int)curr.y][(int)curr.x] = GridType.ENEMY_PATH;
     }
+  }
+  
+  private int dfs(int r, int c) {
+    if (r < 0 || r >= map.length || c < 0 || c >= map[r].length || visited[r][c]) {
+      return -1;
+    }
+    
+    if (map[r][c] == GridType.BASE) {
+      return 1;
+    }
+    
+    visited[r][c] = true;
+    
+    for (PVector dir : DIRECTIONS) {
+      dir_list.add(new PVector(dir.x, dir.y));
+      int res = dfs(r + (int)dir.y, c + (int)dir.x);
+      if (res == -1) {
+        dir_list.remove(dir);
+      }
+    }
+    
+    return 0;
+    
+    
+    
+  }
+  
+  private void generate_dir_list() {
+    
   }
   
   public void draw_game() {
@@ -238,7 +269,7 @@ public class Game {
     }
 
     update_wave();
-    //spawn_enemies();
+    spawn_enemies();
 
     update_towers();
     update_enemies();
@@ -259,15 +290,14 @@ public class Game {
       ++wave;
   }
 
-  //private void spawn_enemies() {
-  //  if (enemies.size() < 1) {
-  //    Enemy to_spawn = new Enemy(enemy_types[0]);
-  //    to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
-  //    println(enemy_spawn.x + ", " + enemy_spawn.y);
-  //    to_spawn.set_direction(new_direction(enemy_spawn));
-  //    enemies.add(to_spawn);
-  //  }
-  //}
+  private void spawn_enemies() {
+    if (enemies.size() < 1) {
+      Enemy to_spawn = new Enemy(enemy_types[0]);
+      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE), SQ_SIZE);
+      to_spawn.set_direction(new_direction(enemy_spawn));
+      enemies.add(to_spawn);
+    }
+  }
 
   private void update_towers() {
     for (Tower t : active_towers)
@@ -276,24 +306,27 @@ public class Game {
 
   private void update_enemies() {
     for (Enemy e : enemies) {
-      
       e.update_enemy(curr_frame_time - prev_frame_time);
     }
   }
   
-  //private PVector new_direction(PVector pos) {
-  //  PVector new_dir = null;
-  //  float min_dist = Float.MAX_VALUE;
+  private PVector new_direction(PVector pos) {
+    PVector new_dir = null;
+    int min_dist = Integer.MAX_VALUE;
     
-  //  for (PVector dir : DIRECTIONS) {
-  //    PVector new_pos = PVector.add(pos, dir);
-  //    if (is_valid_pos(pos) && dist(new_pos, base) < min_dist) {
-  //      new_dir = dir;
-  //    }
-  //  }
+    for (PVector dir : DIRECTIONS) {
+      PVector new_pos = PVector.add(pos, dir);
+      if (is_valid_pos(new_pos) && 
+      map[(int)new_pos.y][(int)new_pos.x] == GridType.ENEMY_PATH && 
+      num_steps(new_pos, base) < min_dist) {
+        println(pos);
+        println(dir);
+        new_dir = dir;
+      }
+    }
     
-  //  return new_dir;
-  //}
+    return new_dir;
+  }
   
 
   private void update_buttons() {
@@ -356,5 +389,11 @@ public class Game {
   
   private boolean is_valid_pos(PVector pos) {
     return pos.x >= 0 && pos.x < map[0].length && pos.y >= 0 && pos.y < map.length;
+  }
+  
+  // return the number of steps (horizontal + vertical)
+  // between v1 and v2 in terms of the map array
+  private int num_steps(PVector v1, PVector v2) {
+    return (int)abs(v1.x - v2.x) + (int)abs(v1.y - v2.y);
   }
 }
