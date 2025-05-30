@@ -1,6 +1,6 @@
 public class Enemy {
    private float health, power, speed;
-   private PVector position, position_idx, direction;
+   private PVector position, direction;
    private boolean damaged;
    private PImage texture;
 
@@ -9,8 +9,6 @@ public class Enemy {
     this.power = power;
     this.speed = speed;
     this.position = position;
-    this.position_idx = position != null ? PVector.div(position, sq_size)
-                                         : null;
     this.direction = direction;
     this.texture = texture;
     this.texture.resize(sq_size, sq_size);
@@ -23,7 +21,6 @@ public class Enemy {
     this.power = e.power;
     this.speed = e.speed;
     this.position = e.position;
-    this.position_idx = e.position_idx;
     this.direction = e.direction;
     this.texture = e.texture;
     this.texture.resize(50, 50);
@@ -47,13 +44,13 @@ public class Enemy {
     return position;
    }
    
-   public PVector get_position_idx() {
-    return position_idx; 
+   public PVector get_position_idx(int sq_size) {
+    PVector quotient = PVector.div(position, sq_size);
+    return new PVector((int)quotient.x, (int)quotient.y);
    }
 
-   public void set_position(PVector position, int sq_size) {
+   public void set_position(PVector position) {
     this.position = position;
-    position_idx = PVector.div(position, sq_size);
    }
 
    public void set_direction(PVector direction) {

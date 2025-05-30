@@ -1,4 +1,9 @@
 import java.util.Arrays;
+import java.util.Stack;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Queue;
+import java.util.LinkedList;
 
 public class Game {
   private final int MAX_TOWERS = 15;
@@ -35,8 +40,7 @@ public class Game {
   private ArrayList<Enemy> enemies;
   private GridType[][] map;
   
-  private ArrayList<PVector> dir_list;
-  private boolean[][] visited; // for dir_list
+  private Map<PVector, PVector> pos_to_dir;
 
   private Tower[] shop_towers;
   private Enemy[] enemy_types;
@@ -87,12 +91,19 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, null, 100, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .01, null, null, loadImage("images/slime.png"), SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .2, null, null, loadImage("images/slime.png"), SQ_SIZE);
     enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"), SQ_SIZE);
     enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"), SQ_SIZE);
     enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"), SQ_SIZE);
 
+
     init_map();
+
+    generate_path_dirs();
+    for (PVector dir: pos_to_dir.values()) {
+      println(dir);
+
+    }
   }
   
   private void init_map() {
@@ -161,33 +172,49 @@ public class Game {
     }
   }
   
-  private int dfs(int r, int c) {
-    if (r < 0 || r >= map.length || c < 0 || c >= map[r].length || visited[r][c]) {
-      return -1;
-    }
-    
-    if (map[r][c] == GridType.BASE) {
-      return 1;
-    }
-    
-    visited[r][c] = true;
-    
-    for (PVector dir : DIRECTIONS) {
-      dir_list.add(new PVector(dir.x, dir.y));
-      int res = dfs(r + (int)dir.y, c + (int)dir.x);
-      if (res == -1) {
-        dir_list.remove(dir);
+  private void generate_path_dirs() {
+    Queue<PVector> st = new LinkedList<PVector>();
+    st.add(new PVector(enemy_spawn.x, enemy_spawn.y));
+
+    Map<PVector, PVector> parent = new HashMap<PVector, PVector>();
+    parent.put(new PVector(enemy_spawn.x, enemy_spawn.y), null);
+
+    boolean[][] visited = new boolean[map.length][map[0].length];
+    for (boolean[] arr : visited)
+      Arrays.fill(arr, false);
+
+    visited[(int)enemy_spawn.y][(int)enemy_spawn.x] = true;
+
+    pos_to_dir = new HashMap<PVector, PVector>();
+
+    while (!st.isEmpty()) {
+      PVector pos = st.poll();
+
+      if (pos.x == base.x && pos.y == base.y) {
+        PVector curr = pos;
+
+        while (parent.get(curr) != null) {
+          PVector dir = PVector.sub(curr, parent.get(curr));
+          pos_to_dir.put(parent.get(curr), dir);
+          curr = parent.get(curr);
+        }
+
+        return;
+      }
+
+      for (PVector dir : DIRECTIONS) {
+        PVector new_pos = PVector.add(pos, dir);
+        if (is_valid_pos(new_pos) &&
+            !visited[(int)new_pos.y][(int)new_pos.x] &&
+            (map[(int)new_pos.y][(int)new_pos.x] == GridType.ENEMY_PATH ||
+            map[(int)new_pos.y][(int)new_pos.x] == GridType.BASE)) {
+
+          visited[(int)new_pos.y][(int)new_pos.x] = true;
+          st.add(new_pos);
+          parent.put(new_pos, pos);
+        } 
       }
     }
-    
-    return 0;
-    
-    
-    
-  }
-  
-  private void generate_dir_list() {
-    
   }
   
   public void draw_game() {
@@ -293,8 +320,8 @@ public class Game {
   private void spawn_enemies() {
     if (enemies.size() < 1) {
       Enemy to_spawn = new Enemy(enemy_types[0]);
-      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE), SQ_SIZE);
-      to_spawn.set_direction(new_direction(enemy_spawn));
+      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
+      to_spawn.set_direction(pos_to_dir.get(to_spawn.get_position_idx(SQ_SIZE)));
       enemies.add(to_spawn);
     }
   }
@@ -306,28 +333,16 @@ public class Game {
 
   private void update_enemies() {
     for (Enemy e : enemies) {
+      PVector pos = e.get_position_idx(SQ_SIZE);
+      if (pos.x == base.x && pos.y == base.y) {
+        e.set_direction(new PVector(0, 0));
+      } else {
+        e.set_direction(pos_to_dir.get(e.get_position_idx(SQ_SIZE)));
+      }
+
       e.update_enemy(curr_frame_time - prev_frame_time);
     }
   }
-  
-  private PVector new_direction(PVector pos) {
-    PVector new_dir = null;
-    int min_dist = Integer.MAX_VALUE;
-    
-    for (PVector dir : DIRECTIONS) {
-      PVector new_pos = PVector.add(pos, dir);
-      if (is_valid_pos(new_pos) && 
-      map[(int)new_pos.y][(int)new_pos.x] == GridType.ENEMY_PATH && 
-      num_steps(new_pos, base) < min_dist) {
-        println(pos);
-        println(dir);
-        new_dir = dir;
-      }
-    }
-    
-    return new_dir;
-  }
-  
 
   private void update_buttons() {
     if (mouse_clicked && buy.mouse_in_button()) {
