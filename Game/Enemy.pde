@@ -48,6 +48,10 @@ public class Enemy {
     PVector quotient = PVector.div(position, sq_size);
     return new PVector((int)quotient.x, (int)quotient.y);
    }
+   
+   public void set_speed(float speed) {
+     this.speed = speed;
+   }
 
    public void set_position(PVector position) {
     this.position = position;

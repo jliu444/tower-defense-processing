@@ -173,8 +173,8 @@ public class Game {
   }
   
   private void generate_path_dirs() {
-    Queue<PVector> st = new LinkedList<PVector>();
-    st.add(new PVector(enemy_spawn.x, enemy_spawn.y));
+    Queue<PVector> q = new LinkedList<PVector>();
+    q.add(new PVector(enemy_spawn.x, enemy_spawn.y));
 
     Map<PVector, PVector> parent = new HashMap<PVector, PVector>();
     parent.put(new PVector(enemy_spawn.x, enemy_spawn.y), null);
@@ -187,8 +187,8 @@ public class Game {
 
     pos_to_dir = new HashMap<PVector, PVector>();
 
-    while (!st.isEmpty()) {
-      PVector pos = st.poll();
+    while (!q.isEmpty()) {
+      PVector pos = q.poll();
 
       if (pos.x == base.x && pos.y == base.y) {
         PVector curr = pos;
@@ -210,7 +210,7 @@ public class Game {
             map[(int)new_pos.y][(int)new_pos.x] == GridType.BASE)) {
 
           visited[(int)new_pos.y][(int)new_pos.x] = true;
-          st.add(new_pos);
+          q.add(new_pos);
           parent.put(new_pos, pos);
         } 
       }
@@ -333,10 +333,14 @@ public class Game {
 
   private void update_enemies() {
     for (Enemy e : enemies) {
-      PVector pos = e.get_position_idx(SQ_SIZE);
-      if (pos.x == base.x && pos.y == base.y) {
-        e.set_direction(new PVector(0, 0));
-      } else {
+      PVector pos = e.get_position();
+      PVector pos_snapped = snap_to_grid(pos);
+
+      if (abs(pos.x - pos_snapped.x) < 2 && abs(pos.y - pos_snapped.y) < 2) {
+        if (pos_snapped.x == base.x && pos_snapped.y == base.y) {
+          e.set_speed(0);
+          continue;
+        }
         e.set_direction(pos_to_dir.get(e.get_position_idx(SQ_SIZE)));
       }
 
