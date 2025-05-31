@@ -21,6 +21,9 @@ public class Game {
   private final int SECOND = 1000; // milliseconds in a second
   private int prev_frame_time, curr_frame_time;
 
+  private int time_at_last_spawn;
+  private int left_to_spawn;
+
   private boolean mouse_clicked;
 
   private boolean is_placing_tower; 
@@ -50,6 +53,9 @@ public class Game {
   public Game() {
     prev_frame_time = 0;
     curr_frame_time = millis();
+
+    time_at_last_spawn = 0;
+    left_to_spawn = 0;
 
     mouse_clicked = false;
 
@@ -87,23 +93,19 @@ public class Game {
     num_enemies = 0;
 
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower(12.0, 10, 100, null, 50, loadImage("images/machine_gun_tower.png"));
-    shop_towers[1] = new Tower(12.0, 100, 100, null, 100, loadImage("images/laser_tower.png"));
+    shop_towers[0] = new Tower(12.0, 10, 100, null, 150, loadImage("images/machine_gun_tower.png"));
+    shop_towers[1] = new Tower(12.0, 100, 100, null, 300, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .2, null, null, loadImage("images/slime.png"), SQ_SIZE);
-    enemy_types[1] = new Enemy(36.0, 10.0, .5, null, null, loadImage("images/blue_slime.png"), SQ_SIZE);
-    enemy_types[2] = new Enemy(30.0, 7.5, 1.0, null, null, loadImage("images/ninja_slime.png"), SQ_SIZE);
-    enemy_types[3] = new Enemy(100.0, 25.0, .1, null, null, loadImage("images/king_slime.png"), SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .1, null, null, loadImage("images/slime.png"), SQ_SIZE);
+    enemy_types[1] = new Enemy(36.0, 10.0, .11, null, null, loadImage("images/blue_slime.png"), SQ_SIZE);
+    enemy_types[2] = new Enemy(30.0, 7.5, .15, null, null, loadImage("images/ninja_slime.png"), SQ_SIZE);
+    enemy_types[3] = new Enemy(100.0, 25.0, .08, null, null, loadImage("images/king_slime.png"), SQ_SIZE);
 
 
     init_map();
 
     generate_path_dirs();
-    for (PVector dir: pos_to_dir.values()) {
-      println(dir);
-
-    }
   }
   
   private void init_map() {
@@ -173,8 +175,8 @@ public class Game {
   }
   
   private void generate_path_dirs() {
-    Queue<PVector> q = new LinkedList<PVector>();
-    q.add(new PVector(enemy_spawn.x, enemy_spawn.y));
+    Queue<PVector> st = new LinkedList<PVector>();
+    st.add(new PVector(enemy_spawn.x, enemy_spawn.y));
 
     Map<PVector, PVector> parent = new HashMap<PVector, PVector>();
     parent.put(new PVector(enemy_spawn.x, enemy_spawn.y), null);
@@ -187,8 +189,8 @@ public class Game {
 
     pos_to_dir = new HashMap<PVector, PVector>();
 
-    while (!q.isEmpty()) {
-      PVector pos = q.poll();
+    while (!st.isEmpty()) {
+      PVector pos = st.poll();
 
       if (pos.x == base.x && pos.y == base.y) {
         PVector curr = pos;
@@ -210,7 +212,7 @@ public class Game {
             map[(int)new_pos.y][(int)new_pos.x] == GridType.BASE)) {
 
           visited[(int)new_pos.y][(int)new_pos.x] = true;
-          q.add(new_pos);
+          st.add(new_pos);
           parent.put(new_pos, pos);
         } 
       }
@@ -271,8 +273,8 @@ public class Game {
     text("HP: " + base_health, width - 50, 100);
     text("Wave: " + wave, width - 50, 150);
     text(
-      "Next wave in: " + (wave == 0 ? (10 * SECOND - millis() % (10 * SECOND)) / SECOND
-                                    : (30 * SECOND - (millis() - 10 * SECOND) % (30 * SECOND)) / SECOND),
+      "Next wave in: " + (wave == 0 ? (5 * SECOND - millis() % (5 * SECOND)) / SECOND
+                                    : (20 * SECOND - (millis() - 5 * SECOND) % (20 * SECOND)) / SECOND),
                                       width - 50, 200
     );
 
@@ -296,7 +298,8 @@ public class Game {
     }
 
     update_wave();
-    spawn_enemies();
+    if (wave > 0 && (millis() - time_at_last_spawn) / SECOND >= 15 / (wave * 2))
+      spawn_enemies();
 
     update_towers();
     update_enemies();
@@ -310,38 +313,69 @@ public class Game {
   }
 
   private void update_wave() {
-    if (wave == 0 && millis() >= 10 * SECOND)
+    if (wave == 0 && millis() >= 5 * SECOND) {
       ++wave;
+      left_to_spawn = 2;
+    }
 
-    else if (millis() >= 10 * SECOND && (millis() - 10 * SECOND) % (30 * SECOND) == 0)
+    else if (millis() >= 5 * SECOND && (millis() - 5 * SECOND) / (20 * SECOND) == wave) {
       ++wave;
+      left_to_spawn += wave * 2;
+    }
   }
 
   private void spawn_enemies() {
-    if (enemies.size() < 1) {
-      Enemy to_spawn = new Enemy(enemy_types[0]);
+    if (left_to_spawn > 0) {
+      int available_types = 1;
+      if (wave >= 3)
+        ++available_types;
+      if (wave >= 5)
+        ++available_types;
+      if (wave >= 7)
+        ++available_types;
+
+      Enemy to_spawn = new Enemy(enemy_types[(int)random(available_types)]);
       to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
       to_spawn.set_direction(pos_to_dir.get(to_spawn.get_position_idx(SQ_SIZE)));
       enemies.add(to_spawn);
+      --left_to_spawn;
+      time_at_last_spawn = millis();
     }
   }
 
   private void update_towers() {
-    for (Tower t : active_towers)
+    for (Tower t : active_towers) {
+      if (t.get_target() == null) {
+        t.lock_to_enemy(enemies);
+      } else {
+        t.attack_target();
+      }
+
       t.update_tower();
+    }
   }
 
   private void update_enemies() {
-    for (Enemy e : enemies) {
-      PVector pos = e.get_position();
-      PVector pos_snapped = snap_to_grid(pos);
+    for (int i = 0; i < enemies.size(); ++i) {
+      Enemy e = enemies.get(i);
+      if (e.get_health() <= 0) {
+        enemies.remove(e);
+      }
 
-      if (abs(pos.x - pos_snapped.x) < 2 && abs(pos.y - pos_snapped.y) < 2) {
-        if (pos_snapped.x == base.x && pos_snapped.y == base.y) {
-          e.set_speed(0);
-          continue;
-        }
-        e.set_direction(pos_to_dir.get(e.get_position_idx(SQ_SIZE)));
+      if (e.is_attacking() && millis() - e.get_time_at_last_attack() >= 1 * SECOND) {
+        e.attack();
+        base_health -= e.get_power();
+        continue;
+      }
+      PVector pos = PVector.div(e.get_position(), SQ_SIZE);
+      PVector pos_idx = e.get_position_idx(SQ_SIZE);
+      
+      if (abs(pos.x - pos_idx.x) < .1 && abs(pos.y - pos_idx.y) < .1) {
+          if (pos_idx.x == base.x && pos_idx.y == base.y) {
+            e.set_attacking(true);
+          }
+
+          e.set_direction(pos_to_dir.get(pos_idx));
       }
 
       e.update_enemy(curr_frame_time - prev_frame_time);
@@ -374,6 +408,9 @@ public class Game {
       if (curr_grid == GridType.EMPTY) tint(255, 128);
       else tint(209, 8, 28, 128);
       image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
+      noFill();
+      println(tower_being_placed.get_range());
+      circle(tower_pos.x + 25, tower_pos.y + 25, tower_being_placed.get_range() * 2);
       tint(255, 255);
 
       if (mouse_clicked && curr_grid == GridType.EMPTY && cash >= tower_being_placed.get_price()) {
