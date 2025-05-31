@@ -4,6 +4,7 @@ public class Enemy {
    private boolean damaged, attacking;
    private PImage texture;
    private int time_at_last_attack;
+   private HealthBar hp_bar;
 
    public Enemy(float health, float power, float speed, PVector position, PVector direction, PImage texture, int sq_size) {
     this.health = health;
@@ -13,6 +14,8 @@ public class Enemy {
     this.direction = direction;
     this.texture = texture;
     this.texture.resize(sq_size, sq_size);
+
+    hp_bar = new HealthBar(position.x + 5, position.y + sq_size + 5, sq_size - 10, 5, health, health);
 
     damaged = false;
     attacking = false;
@@ -27,6 +30,7 @@ public class Enemy {
     this.direction = e.direction;
     this.texture = e.texture;
     this.texture.resize(50, 50);
+    this.hp_bar = new HealthBar(e.get_hp_bar());
 
     damaged = false;
    }
@@ -64,12 +68,17 @@ public class Enemy {
     return time_at_last_attack;
    }
 
+   public HealthBar get_hp_bar() {
+    return hp_bar;
+   }
+
    public void set_speed(float speed) {
      this.speed = speed;
    }
 
    public void set_position(PVector position) {
     this.position = position;
+    hp_bar.set_position(new PVector(position.x + 5, position.y + 55));
    }
 
    public void set_direction(PVector direction) {
@@ -82,11 +91,15 @@ public class Enemy {
 
    public void draw_enemy() {
     image(texture, position.x, position.y);
+    hp_bar.draw_hp_bar();
    }
 
    public void update_enemy(float delta_time) {
     if (!attacking) {
-      position.add(PVector.mult(direction, speed * delta_time));
+      PVector move = PVector.mult(direction, speed * delta_time);
+      position.add(move);
+      PVector new_hp_bar_pos = PVector.add(hp_bar.get_position(), move);
+      hp_bar.set_position(new_hp_bar_pos);
     }
    }
 
@@ -96,5 +109,6 @@ public class Enemy {
 
    public void damage(float dmg) {
     health -= dmg;
+    hp_bar.set_curr_hp(health);
    }
 }

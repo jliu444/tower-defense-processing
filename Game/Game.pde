@@ -92,16 +92,16 @@ public class Game {
     enemies = new ArrayList<Enemy>();
     num_enemies = 0;
 
+    final PVector zero = new PVector(0, 0);
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower(12.0, 10, 100, null, 150, loadImage("images/machine_gun_tower.png"));
-    shop_towers[1] = new Tower(12.0, 100, 100, null, 300, loadImage("images/laser_tower.png"));
+    shop_towers[0] = new Tower(5.0, 2, 100, zero, 150, loadImage("images/machine_gun_tower.png"));
+    shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .1, null, null, loadImage("images/slime.png"), SQ_SIZE);
-    enemy_types[1] = new Enemy(36.0, 10.0, .11, null, null, loadImage("images/blue_slime.png"), SQ_SIZE);
-    enemy_types[2] = new Enemy(30.0, 7.5, .15, null, null, loadImage("images/ninja_slime.png"), SQ_SIZE);
-    enemy_types[3] = new Enemy(100.0, 25.0, .08, null, null, loadImage("images/king_slime.png"), SQ_SIZE);
-
+    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, loadImage("images/slime.png"), SQ_SIZE);
+    enemy_types[1] = new Enemy(36.0, 10.0, .11, zero, zero, loadImage("images/blue_slime.png"), SQ_SIZE);
+    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, loadImage("images/ninja_slime.png"), SQ_SIZE);
+    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, loadImage("images/king_slime.png"), SQ_SIZE);
 
     init_map();
 
@@ -409,7 +409,6 @@ public class Game {
       else tint(209, 8, 28, 128);
       image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
       noFill();
-      println(tower_being_placed.get_range());
       circle(tower_pos.x + 25, tower_pos.y + 25, tower_being_placed.get_range() * 2);
       tint(255, 255);
 

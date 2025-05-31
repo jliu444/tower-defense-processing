@@ -90,18 +90,18 @@ public class Tower {
   }
 
   public void attack_target() {
-    if (millis() - time_at_last_attack >= 1 / fire_rate * 1000)
+    if (millis() - time_at_last_attack >= 1000 / fire_rate) {
       target.damage(power);
+      time_at_last_attack = millis();
+    }
 
     if (target.get_health() <= 0)
       target = null;
   }
 
   public void update_tower() {
-
-  }
-
-  public void attack() {
-    time_at_last_attack = millis();
+    if (target != null &&
+        dist(position.x + 25, position.y + 25, target.get_position().x, target.get_position().y) > range)
+      target = null;
   }
 }
