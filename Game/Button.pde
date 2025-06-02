@@ -15,6 +15,11 @@ public class Button {
         this.texture = texture;
         this.texture.resize((int)_width, (int)_height);
     }
+    
+    public void set_texture(PImage texture) {
+      this.texture = texture;
+      this.texture.resize((int)_width, (int)_height);
+    }
 
     public void draw_button() {
         color active_color = c;

@@ -17,6 +17,18 @@ public class Game {
     new PVector(0, 1), // south
     new PVector(-1, 0) // west
   };
+  
+  private final PImage SHOP_LEFT_TEX = loadImage("images/left_arrow.png");
+  private final PImage SHOP_RIGHT_TEX = loadImage("images/right_arrow.png");
+  private final PImage BUY_TEX = loadImage("images/buy.png");
+  private final PImage CANCEL_TEX = loadImage("images/cancel.png");
+  private final PImage MACHINE_GUN_TEX = loadImage("images/machine_gun_tower.png");
+  private final PImage LAZER_TEX = loadImage("images/laser_tower.png");
+  private final PImage SLIME_TEX = loadImage("images/slime.png");
+  private final PImage BLUE_SLIME_TEX = loadImage("images/blue_slime.png");
+  private final PImage NINJA_SLIME_TEX = loadImage("images/ninja_slime.png");
+  private final PImage KING_SLIME_TEX = loadImage("images/king_slime.png");
+  private final PImage RESTART_TEX = loadImage("images/restart.png");
 
   private final int SECOND = 1000; // milliseconds in a second
 
@@ -74,25 +86,25 @@ public class Game {
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("images/left_arrow.png"));
+                           SHOP_LEFT_TEX);
 
     shop_right = new Button(width - 100, 625, 50, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("images/right_arrow.png"));
+                           SHOP_RIGHT_TEX);
                            
     buy = new Button(width - 250, 625, 100, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("images/buy.png"));
+                           BUY_TEX);
                           
     restart = new Button(width / 2 - 50, 605, 100, 100,
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
-                           loadImage("images/buy.png"));
+                           RESTART_TEX);
 
     curr_tower_idx = 0;
 
@@ -112,14 +124,14 @@ public class Game {
 
     final PVector zero = new PVector(0, 0);
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower(5.0, 2, 100, zero, 150, loadImage("images/machine_gun_tower.png"));
-    shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, loadImage("images/laser_tower.png"));
+    shop_towers[0] = new Tower(5.0, 2, 100, zero, 150, MACHINE_GUN_TEX);
+    shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, loadImage("images/slime.png"), 25, SQ_SIZE);
-    enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, loadImage("images/blue_slime.png"), 40, SQ_SIZE);
-    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, loadImage("images/ninja_slime.png"), 40, SQ_SIZE);
-    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, loadImage("images/king_slime.png"), 100, SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, SLIME_TEX, 25, SQ_SIZE);
+    enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 40, SQ_SIZE);
+    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 40, SQ_SIZE);
+    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
 
     stats_to_display = null;
 
@@ -453,9 +465,14 @@ public class Game {
   }
 
   private void update_buttons() {
-    if (mouse_clicked && buy.mouse_in_button()) {
+    if (mouse_clicked && buy.mouse_in_button() && !is_placing_tower) {
       is_placing_tower = true;
+      buy.set_texture(CANCEL_TEX);
       tower_being_placed = new Tower(shop_towers[curr_tower_idx]);
+    } else if (mouse_clicked && buy.mouse_in_button() && is_placing_tower) {
+      is_placing_tower = false;
+      buy.set_texture(BUY_TEX);
+      tower_being_placed = null;
     }
 
     if (mouse_clicked && shop_left.mouse_in_button())
@@ -489,6 +506,7 @@ public class Game {
 
       if (mouse_clicked && curr_grid == GridType.EMPTY && cash >= tower_being_placed.get_price()) {
         is_placing_tower = false;
+        buy.set_texture(BUY_TEX);
         cash -= tower_being_placed.get_price();
         active_towers.add(tower_being_placed);
         active_towers.get(active_towers.size() - 1).set_position(tower_pos);
