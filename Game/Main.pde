@@ -1,4 +1,4 @@
- Game game;
+Game game;
 
 void setup() {
   size(1400, 1000);
@@ -8,8 +8,12 @@ void setup() {
 
 void draw() {
   background(255);
+  
+  if (game.restarted)
+    game = new Game();
   game.draw_game();
   game.update();
+  game.set_mouse_clicked(false);
 }
 
 void keyPressed() {

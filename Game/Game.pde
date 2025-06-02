@@ -19,10 +19,13 @@ public class Game {
   };
 
   private final int SECOND = 1000; // milliseconds in a second
+
+  private int start_time;
   private int prev_frame_time, curr_frame_time;
+  private int time_to_next_wave;
 
   private int time_at_last_spawn;
-  private int left_to_spawn;
+  private float spawn_rate;
 
   private boolean mouse_clicked;
 
@@ -35,9 +38,6 @@ public class Game {
   private float base_health;
   private int wave;
   private int cash;
-
-  private int num_towers;
-  private int num_enemies;
   
   private ArrayList<Tower> active_towers;
   private ArrayList<Enemy> enemies;
@@ -48,14 +48,22 @@ public class Game {
   private Tower[] shop_towers;
   private Enemy[] enemy_types;
 
-  PVector enemy_spawn, base; // x is row num on map, y is col num
+  private PVector enemy_spawn, base; // x is row num on map, y is col num
+
+  private Tower stats_to_display;
+
+  // game stats
+  private int kills, lifetime_cash;
+  private float dmg_taken, dmg_dealt;
+  private Button restart;
+  private boolean restarted;
   
   public Game() {
     prev_frame_time = 0;
     curr_frame_time = millis();
 
     time_at_last_spawn = 0;
-    left_to_spawn = 0;
+    spawn_rate = 0;
 
     mouse_clicked = false;
 
@@ -79,18 +87,28 @@ public class Game {
                            color(54, 104, 186), 
                            color(73, 118, 191),
                            loadImage("images/buy.png"));
+                          
+    restart = new Button(width / 2 - 50, 605, 100, 100,
+                           color(24, 85, 184), 
+                           color(54, 104, 186), 
+                           color(73, 118, 191),
+                           loadImage("images/buy.png"));
 
     curr_tower_idx = 0;
 
     base_health = 100.0;
     wave = 0;
-    cash = 100000;
+    cash = 100;
     
     active_towers = new ArrayList<Tower>();
-    num_towers = 0;
 
     enemies = new ArrayList<Enemy>();
-    num_enemies = 0;
+
+    kills = 0;
+    lifetime_cash = 0;
+    dmg_taken = 0;
+    dmg_dealt = 0;
+    restarted = false;
 
     final PVector zero = new PVector(0, 0);
     shop_towers = new Tower[2];
@@ -98,14 +116,18 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, loadImage("images/laser_tower.png"));
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, loadImage("images/slime.png"), SQ_SIZE);
-    enemy_types[1] = new Enemy(36.0, 10.0, .11, zero, zero, loadImage("images/blue_slime.png"), SQ_SIZE);
-    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, loadImage("images/ninja_slime.png"), SQ_SIZE);
-    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, loadImage("images/king_slime.png"), SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, loadImage("images/slime.png"), 25, SQ_SIZE);
+    enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, loadImage("images/blue_slime.png"), 40, SQ_SIZE);
+    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, loadImage("images/ninja_slime.png"), 40, SQ_SIZE);
+    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, loadImage("images/king_slime.png"), 100, SQ_SIZE);
+
+    stats_to_display = null;
 
     init_map();
 
     generate_path_dirs();
+
+    start_time = millis();
   }
   
   private void init_map() {
@@ -220,14 +242,13 @@ public class Game {
   }
   
   public void draw_game() {
-    if (is_game_over())
-      game_over();
-
     prev_frame_time = curr_frame_time;
     curr_frame_time = millis();
 
+
     draw_map();
     draw_towers();
+    display_tower_stats();
     draw_enemies();
     draw_UI();
   }
@@ -238,7 +259,12 @@ public class Game {
     while (curr_y + SQ_SIZE <= height) {
       switch (map[curr_y / SQ_SIZE][curr_x / SQ_SIZE]) {
         case EMPTY:
-        case OCCUPIED: stroke(43, 143, 46); fill(43, 143, 46); break; // will be drawn by draw_towers() 
+        case OCCUPIED: 
+          if(is_placing_tower) stroke(55, 32);
+          else stroke(43, 143, 46); 
+
+          fill(43, 143, 46);
+          break; // will be drawn by draw_towers() 
         case ENEMY_PATH: stroke(54, 43, 43); fill(54, 43, 43); break;
         case ENEMY_SPAWN: stroke(255, 0, 0); fill(255, 0, 0); break;
         case BASE: stroke(0, 0, 255); fill(0, 0, 255); break;
@@ -272,11 +298,12 @@ public class Game {
     text("Cash: $" + cash, width - 50, 50);
     text("HP: " + base_health, width - 50, 100);
     text("Wave: " + wave, width - 50, 150);
-    text(
-      "Next wave in: " + (wave == 0 ? (5 * SECOND - millis() % (5 * SECOND)) / SECOND
-                                    : (20 * SECOND - (millis() - 5 * SECOND) % (20 * SECOND)) / SECOND),
-                                      width - 50, 200
-    );
+
+    if (!is_game_over()) {
+      time_to_next_wave = (wave == 0 ? (5 * SECOND - (millis() - start_time) % (5 * SECOND)) / SECOND
+                                     : (20 * SECOND - (millis() - start_time - 5 * SECOND) % (20 * SECOND)) / SECOND);
+    }
+    text("Next wave in: " + time_to_next_wave, width - 50, 200);
 
     draw_shop();
   }
@@ -286,20 +313,57 @@ public class Game {
     shop_right.draw_button();
     buy.draw_button();
 
+    Tower t = shop_towers[curr_tower_idx];
+
     fill(0);
     rect(width - 350, 300, 300, 300);
-    image(shop_towers[curr_tower_idx].get_texture_large(), width - 350, 300);
+    image(t.get_texture_large(), width - 350, 300);
+
+    textAlign(CENTER);
+    textSize(32);
+
+    if (cash < t.get_price())
+      fill(255, 0, 0);
+    else
+      fill(0);
+
+    text("Price: $" + t.get_price(), width - 200, 280);
+
+  }
+
+  private void display_tower_stats() {
+    if (stats_to_display == null)
+      return;
+
+
+    PVector pos = stats_to_display.get_position();
+    float left = pos.x - 15;
+    float top = pos.y - 60;
+
+    fill(255);
+    textAlign(LEFT);
+    textSize(16);
+    
+    text("Power: " + stats_to_display.get_power(), left, top);
+    text("Firerate: " + stats_to_display.get_fire_rate() + " atks/s", left, top + 15); 
+    text("DPS: " + stats_to_display.get_power() * stats_to_display.get_fire_rate(), left, top + 30); 
+    text("Range: " + stats_to_display.get_range() + " px", left, top + 45);
+
+    noStroke();
+    fill(255, 32);
+    circle(pos.x + 25, pos.y + 25, stats_to_display.get_range() * 2);
   }
 
   public void update() {
     if (is_game_over()) {
-      // placeholder
+      game_over();
       return;
     }
 
     update_wave();
-    if (wave > 0 && (millis() - time_at_last_spawn) / SECOND >= 15 / (wave * 2))
-      spawn_enemies();
+    // fix spawn rate
+    if (wave > 0 && (millis() - time_at_last_spawn) >= 1000 / spawn_rate)
+      spawn_enemy();
 
     update_towers();
     update_enemies();
@@ -308,47 +372,49 @@ public class Game {
     if (is_placing_tower) {
       place_tower();
     }
-
-    mouse_clicked = false;
   }
 
   private void update_wave() {
-    if (wave == 0 && millis() >= 5 * SECOND) {
+    if (wave == 0 && millis() - start_time >= 5 * SECOND) {
       ++wave;
-      left_to_spawn = 2;
+      spawn_rate = .2;
     }
 
-    else if (millis() >= 5 * SECOND && (millis() - 5 * SECOND) / (20 * SECOND) == wave) {
+    else if (millis() - start_time >= 5 * SECOND && (millis() - start_time - 5 * SECOND) / (20 * SECOND) == wave) {
       ++wave;
-      left_to_spawn += wave * 2;
+      spawn_rate *= 2;
     }
   }
 
-  private void spawn_enemies() {
-    if (left_to_spawn > 0) {
-      int available_types = 1;
-      if (wave >= 3)
-        ++available_types;
-      if (wave >= 5)
-        ++available_types;
-      if (wave >= 7)
-        ++available_types;
+  private void spawn_enemy() {
+    int available_types = 1;
+    if (wave >= 3)
+      ++available_types;
+    if (wave >= 5)
+      ++available_types;
+    if (wave >= 7)
+      ++available_types;
 
-      Enemy to_spawn = new Enemy(enemy_types[(int)random(available_types)]);
-      to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
-      to_spawn.set_direction(pos_to_dir.get(to_spawn.get_position_idx(SQ_SIZE)));
-      enemies.add(to_spawn);
-      --left_to_spawn;
-      time_at_last_spawn = millis();
-    }
+    Enemy to_spawn = new Enemy(enemy_types[(int)random(available_types)]);
+    to_spawn.set_position(PVector.mult(enemy_spawn, SQ_SIZE));
+    to_spawn.set_direction(pos_to_dir.get(to_spawn.get_position_idx(SQ_SIZE)));
+    enemies.add(to_spawn);
+    
+    time_at_last_spawn = millis();
   }
 
   private void update_towers() {
     for (Tower t : active_towers) {
-      if (t.get_target() == null) {
+      if (t.get_target() == null)
         t.lock_to_enemy(enemies);
-      } else {
-        t.attack_target();
+      else if (t.attack_target())
+          dmg_dealt += t.get_power();
+
+      if (mouse_clicked && t.mouse_in_tower()) {
+        if (stats_to_display == t)
+          stats_to_display = null;
+        else
+          stats_to_display = t;
       }
 
       t.update_tower();
@@ -360,11 +426,15 @@ public class Game {
       Enemy e = enemies.get(i);
       if (e.get_health() <= 0) {
         enemies.remove(e);
+        cash += e.get_value();
+        lifetime_cash += e.get_value();
+        ++kills;
       }
 
       if (e.is_attacking() && millis() - e.get_time_at_last_attack() >= 1 * SECOND) {
         e.attack();
         base_health -= e.get_power();
+        dmg_taken += e.get_power();
         continue;
       }
       PVector pos = PVector.div(e.get_position(), SQ_SIZE);
@@ -405,10 +475,15 @@ public class Game {
 
     if (row_idx >= 0 && row_idx < map.length && col_idx >= 0 && col_idx < map[0].length) { 
       GridType curr_grid = map[row_idx][col_idx];
-      if (curr_grid == GridType.EMPTY) tint(255, 128);
-      else tint(209, 8, 28, 128);
+
+      if (curr_grid != GridType.EMPTY || cash < tower_being_placed.get_price())
+        tint(209, 8, 28, 128);
+      else
+        tint(255, 128);
+
       image(tower_being_placed.get_texture_small(), tower_pos.x, tower_pos.y);
-      noFill();
+      noStroke();
+      fill(255, 32);
       circle(tower_pos.x + 25, tower_pos.y + 25, tower_being_placed.get_range() * 2);
       tint(255, 255);
 
@@ -435,7 +510,25 @@ public class Game {
   }
 
   private void game_over() {
+    fill(88, 124, 214);
+    rect(350, 250, 700, 470);
 
+    fill(255);
+    textAlign(CENTER);
+    textSize(64);
+    text("Game Over!", width / 2, 320);
+    textSize(32);
+    text("Total Kills: " + kills, width / 2, 390);
+    text("Cash Earned: $" + lifetime_cash, width / 2, 435);
+    text("Damage Taken: " + dmg_taken, width / 2, 480);
+    text("Damage Dealt: " + dmg_dealt, width / 2, 525);
+    text("Waves Survived: " + (wave - 1), width / 2, 570);
+
+    restart.draw_button();
+
+    if (mouse_clicked && restart.mouse_in_button()) {
+      restarted = true;
+    }
   }
 
   public void set_mouse_clicked(boolean mouse_clicked) {

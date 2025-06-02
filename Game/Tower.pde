@@ -89,14 +89,22 @@ public class Tower {
     }
   }
 
-  public void attack_target() {
-    if (millis() - time_at_last_attack >= 1000 / fire_rate) {
-      target.damage(power);
-      time_at_last_attack = millis();
-    }
+  public boolean mouse_in_tower() {
+    return (mouseX >= position.x && mouseX <= position.x + 50 &&
+        mouseY >= position.y && mouseY <= position.y + 50);
+  }
 
+  public boolean attack_target() {
     if (target.get_health() <= 0)
       target = null;
+
+    else if (millis() - time_at_last_attack >= 1000 / fire_rate) {
+      target.damage(power);
+      time_at_last_attack = millis();
+      return true;
+    }
+
+    return false;
   }
 
   public void update_tower() {

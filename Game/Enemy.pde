@@ -5,8 +5,9 @@ public class Enemy {
    private PImage texture;
    private int time_at_last_attack;
    private HealthBar hp_bar;
+   private int value;
 
-   public Enemy(float health, float power, float speed, PVector position, PVector direction, PImage texture, int sq_size) {
+   public Enemy(float health, float power, float speed, PVector position, PVector direction, PImage texture, int value, int sq_size) {
     this.health = health;
     this.power = power;
     this.speed = speed;
@@ -16,6 +17,8 @@ public class Enemy {
     this.texture.resize(sq_size, sq_size);
 
     hp_bar = new HealthBar(position.x + 5, position.y + sq_size + 5, sq_size - 10, 5, health, health);
+
+    this.value = value;
 
     damaged = false;
     attacking = false;
@@ -31,6 +34,7 @@ public class Enemy {
     this.texture = e.texture;
     this.texture.resize(50, 50);
     this.hp_bar = new HealthBar(e.get_hp_bar());
+    this.value = e.value;
 
     damaged = false;
    }
@@ -70,6 +74,10 @@ public class Enemy {
 
    public HealthBar get_hp_bar() {
     return hp_bar;
+   }
+
+   public int get_value() {
+    return value;
    }
 
    public void set_speed(float speed) {
