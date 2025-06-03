@@ -128,7 +128,7 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, SLIME_TEX, 25, SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .5, zero, zero, SLIME_TEX, 25, SQ_SIZE);
     enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
@@ -460,7 +460,25 @@ public class Game {
           e.set_direction(pos_to_dir.get(pos_idx));
       }
 
-      e.update_enemy(curr_frame_time - prev_frame_time);
+      
+      // trying to fix issue when speed is too high, enemy moved out of path
+      println("here");
+      println(e.get_position());
+      PVector new_pos = PVector.add(e.get_position(), PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time)));
+      println(new_pos);
+      if (pos_to_dir.get(pos_to_idx(new_pos)) == null) {
+        println("invalid pos");
+        new_pos = new PVector((int)e.get_position_idx(SQ_SIZE).x, (int)e.get_position_idx(SQ_SIZE).y);
+        PVector dir = pos_to_dir.get(e.get_position_idx(SQ_SIZE));
+        PVector next_dir = pos_to_dir.get(new_pos);
+        println(dir);
+        println(next_dir);
+        while (next_dir.x == dir.x && next_dir.y == dir.y) {
+          new_pos.add(dir);
+          next_dir = pos_to_dir.get(new_pos);
+        }
+      }
+      e.set_position(new_pos);
     }
   }
 
@@ -555,6 +573,10 @@ public class Game {
   
   private boolean is_valid_pos(PVector pos) {
     return pos.x >= 0 && pos.x < map[0].length && pos.y >= 0 && pos.y < map.length;
+  }
+  
+  private PVector pos_to_idx(PVector pos) {
+    return new PVector((int)pos.x / SQ_SIZE, (int)pos.y / SQ_SIZE);
   }
   
   // return the number of steps (horizontal + vertical)
