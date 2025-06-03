@@ -1,6 +1,6 @@
 public class HealthBar {
-    float x_pos, y_pos, width, height;
-    float curr_hp, total_hp;
+    private float x_pos, y_pos, width, height;
+    private float curr_hp, total_hp;
 
     public HealthBar(float x_pos, float y_pos, float width, float height, float curr_hp, float total_hp) {
         this.x_pos = x_pos;
