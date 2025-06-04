@@ -468,7 +468,7 @@ public class Game {
       println(new_pos);
       if (pos_to_dir.get(pos_to_idx(new_pos)) == null) {
         println("invalid pos");
-        new_pos = new PVector((int)e.get_position_idx(SQ_SIZE).x, (int)e.get_position_idx(SQ_SIZE).y);
+        new_pos = e.get_position_idx(SQ_SIZE);
         PVector dir = pos_to_dir.get(e.get_position_idx(SQ_SIZE));
         PVector next_dir = pos_to_dir.get(new_pos);
         println(dir);
