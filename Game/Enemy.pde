@@ -107,6 +107,10 @@ public class Enemy {
       PVector move = PVector.mult(direction, speed * delta_time);
       position.add(move);
       PVector new_hp_bar_pos = PVector.add(hp_bar.get_position(), move);
+      if (new_hp_bar_pos.y >= height)
+        new_hp_bar_pos.y = position.y - 10;
+      if (new_hp_bar_pos.y <= height)
+        new_hp_bar_pos.y = position.y + 55;
       hp_bar.set_position(new_hp_bar_pos);
     }
    }

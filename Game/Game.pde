@@ -82,19 +82,19 @@ public class Game {
     is_placing_tower = false;
     tower_being_placed = null;
 
-    shop_left = new Button(width - 350, 625, 50, 50, 
+    shop_left = new Button(width - 350, 895, 50, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
                            SHOP_LEFT_TEX);
 
-    shop_right = new Button(width - 100, 625, 50, 50, 
+    shop_right = new Button(width - 100, 895, 50, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
                            SHOP_RIGHT_TEX);
                            
-    buy = new Button(width - 250, 625, 100, 50, 
+    buy = new Button(width - 250, 895, 100, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
@@ -128,7 +128,7 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .4, zero, zero, SLIME_TEX, 25, SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, SLIME_TEX, 25, SQ_SIZE);
     enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
@@ -257,11 +257,10 @@ public class Game {
     prev_frame_time = curr_frame_time;
     curr_frame_time = millis();
 
-
     draw_map();
+    draw_enemies();
     draw_towers();
     display_tower_stats();
-    draw_enemies();
     draw_UI();
   }
 
@@ -328,19 +327,47 @@ public class Game {
     Tower t = shop_towers[curr_tower_idx];
 
     fill(0);
-    rect(width - 350, 300, 300, 300);
-    image(t.get_texture_large(), width - 350, 300);
-
-    textAlign(CENTER);
+    rect(width - 350, 375, 300, 300);
+    image(t.get_texture_large(), width - 350, 375);
+    
+    fill(24, 85, 184);
+    rect(width - 350, 675, 300, 200);
+    
     textSize(32);
-
+    
+    float left = width - 335;
+    float top = 715;
+    
+    textAlign(LEFT);
+    fill(255);
+    text("Power: ", left, top);
+    text("Firerate: ", left, top + 35);
+    text("DPS: ", left, top + 70);
+    text("Range: ", left, top + 105);
+    
     if (cash < t.get_price())
       fill(255, 0, 0);
     else
-      fill(0);
-
-    text("Price: $" + t.get_price(), width - 200, 280);
-
+      fill(255);
+      
+    text("Price: ", left, top + 140);
+    
+    fill(255);
+    float right = width - 65;
+    textAlign(RIGHT);
+    text(t.get_power(), right, top);
+    text(t.get_fire_rate() + " atks/s", right, top + 35);
+    text(t.get_power() * t.get_fire_rate(), right, top + 70);
+    text(t.get_range() + " px", right, top + 105);    
+    
+    if (cash < t.get_price())
+      fill(255, 0, 0);
+    else
+      fill(255);
+      
+    text("$" + t.get_price(), right, top + 140);
+    
+    
   }
 
   private void display_tower_stats() {
@@ -464,34 +491,34 @@ public class Game {
 
       
       // trying to fix issue when speed is too high, enemy moved out of path
-      println("here");
-      println(e.get_position());
-      PVector move = PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time));
-      println(move);
+      //println("here");
+      //println(e.get_position());
+      //PVector move = PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time));
+      //println(move);
       
-      // calculate maximum movement
-      PVector init_dir = pos_to_dir.get(pos_idx);
-      PVector dir = pos_to_dir.get(pos_idx);
-      PVector curr_pos = new PVector(pos_idx.x, pos_idx.y);
-      while (dir.x == init_dir.x && dir.y == init_dir.y) {
-        curr_pos.add(dir);
-        if (curr_pos.x == base.x && curr_pos.y == base.y)
-          break;
-        dir = pos_to_dir.get(curr_pos);
-      }
+      //// calculate maximum movement
+      //PVector init_dir = pos_to_dir.get(pos_idx);
+      //PVector dir = pos_to_dir.get(pos_idx);
+      //PVector curr_pos = new PVector(pos_idx.x, pos_idx.y);
+      //while (dir.x == init_dir.x && dir.y == init_dir.y) {
+      //  curr_pos.add(dir);
+      //  if (curr_pos.x == base.x && curr_pos.y == base.y)
+      //    break;
+      //  dir = pos_to_dir.get(curr_pos);
+      //}
 
-      PVector max_move = PVector.sub(curr_pos, e.get_position());
-      println(max_move);
+      //PVector max_move = PVector.sub(curr_pos, e.get_position());
+      //println(max_move);
 
-      if (abs(move.x) + abs(move.y) < abs(max_move.x) + abs(max_move.y)) {
-        println("in1");
-        e.set_position(PVector.add(e.get_position(), move));
-      }
-      else {
-        println("in2");
-        e.set_position(PVector.add(e.get_position(), max_move));
-      }
-      // e.update_enemy(curr_frame_time - prev_frame_time);
+      //if (abs(move.x) + abs(move.y) < abs(max_move.x) + abs(max_move.y)) {
+      //  println("in1");
+      //  e.set_position(PVector.add(e.get_position(), move));
+      //}
+      //else {
+      //  println("in2");
+      //  e.set_position(PVector.add(e.get_position(), max_move));
+      //}
+      e.update_enemy(curr_frame_time - prev_frame_time);
 
     }
   }
