@@ -128,7 +128,7 @@ public class Game {
     shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .5, zero, zero, SLIME_TEX, 25, SQ_SIZE);
+    enemy_types[0] = new Enemy(24.0, 5.0, .4, zero, zero, SLIME_TEX, 25, SQ_SIZE);
     enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 40, SQ_SIZE);
     enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
@@ -449,6 +449,7 @@ public class Game {
         dmg_taken += e.get_power();
         continue;
       }
+
       PVector pos = PVector.div(e.get_position(), SQ_SIZE);
       PVector pos_idx = e.get_position_idx(SQ_SIZE);
       
@@ -458,27 +459,40 @@ public class Game {
           }
 
           e.set_direction(pos_to_dir.get(pos_idx));
+          println(e.get_direction());
       }
 
       
       // trying to fix issue when speed is too high, enemy moved out of path
       println("here");
       println(e.get_position());
-      PVector new_pos = PVector.add(e.get_position(), PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time)));
-      println(new_pos);
-      if (pos_to_dir.get(pos_to_idx(new_pos)) == null) {
-        println("invalid pos");
-        new_pos = e.get_position_idx(SQ_SIZE);
-        PVector dir = pos_to_dir.get(e.get_position_idx(SQ_SIZE));
-        PVector next_dir = pos_to_dir.get(new_pos);
-        println(dir);
-        println(next_dir);
-        while (next_dir.x == dir.x && next_dir.y == dir.y) {
-          new_pos.add(dir);
-          next_dir = pos_to_dir.get(new_pos);
-        }
+      PVector move = PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time));
+      println(move);
+      
+      // calculate maximum movement
+      PVector init_dir = pos_to_dir.get(pos_idx);
+      PVector dir = pos_to_dir.get(pos_idx);
+      PVector curr_pos = new PVector(pos_idx.x, pos_idx.y);
+      while (dir.x == init_dir.x && dir.y == init_dir.y) {
+        curr_pos.add(dir);
+        if (curr_pos.x == base.x && curr_pos.y == base.y)
+          break;
+        dir = pos_to_dir.get(curr_pos);
       }
-      e.set_position(new_pos);
+
+      PVector max_move = PVector.sub(curr_pos, e.get_position());
+      println(max_move);
+
+      if (abs(move.x) + abs(move.y) < abs(max_move.x) + abs(max_move.y)) {
+        println("in1");
+        e.set_position(PVector.add(e.get_position(), move));
+      }
+      else {
+        println("in2");
+        e.set_position(PVector.add(e.get_position(), max_move));
+      }
+      // e.update_enemy(curr_frame_time - prev_frame_time);
+
     }
   }
 
