@@ -132,8 +132,8 @@ public class Game {
 
     final PVector zero = new PVector(0, 0);
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower(5.0, 2, 100, zero, 150, MACHINE_GUN_TEX);
-    shop_towers[1] = new Tower(12.0, 100, 100, zero, 300, LAZER_TEX);
+    shop_towers[0] = new Tower("Machine Gun Tower", 5.0, 2, 100, zero, 150, MACHINE_GUN_TEX);
+    shop_towers[1] = new Tower("Laser Tower", 12.0, 100, 100, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
     enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, SLIME_TEX, 25, SQ_SIZE);
@@ -352,13 +352,17 @@ public class Game {
     rect(width - 350, 375, 300, 300);
     image(t.get_texture_large(), width - 350, 375);
     
-    fill(24, 85, 184);
-    rect(width - 350, 675, 300, 200);
-    
     textSize(32);
-    
     float left = width - 335;
     float top = 715;
+    
+    fill(24, 85, 184);
+    rect(width - 350, 325, 300, 50);
+    rect(width - 350, 675, 300, 200);  
+
+    textAlign(CENTER);
+    fill(255);
+    text(t.get_name(), width - 200, 360);
     
     textAlign(LEFT);
     fill(255);

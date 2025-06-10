@@ -1,4 +1,5 @@
 public class Tower {
+  private String name;
   private float power, fire_rate, range;
   private int price;
   private PVector position;
@@ -6,7 +7,8 @@ public class Tower {
   private int time_at_last_attack;
   private Enemy target;
   
-  public Tower(float power, float fire_rate, int price, PVector position, float range, PImage texture) {
+  public Tower(String name, float power, float fire_rate, int price, PVector position, float range, PImage texture) {
+    this.name = name;
     this.power = power;
     this.fire_rate = fire_rate;
     this.price = price;
@@ -23,6 +25,7 @@ public class Tower {
   }
   
   public Tower(Tower t) {
+    this.name = t.name;
     this.power = t.power;
     this.fire_rate = t.fire_rate;
     this.price = t.price;
@@ -34,6 +37,10 @@ public class Tower {
 
     time_at_last_attack = t.time_at_last_attack;
     target = t.target;
+  }
+  
+  public String get_name() {
+    return name;
   }
 
   public float get_power() {
