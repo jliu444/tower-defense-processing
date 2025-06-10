@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.text.DecimalFormat;
 
 public class Game {
   private final int MAX_TOWERS = 15;
@@ -29,6 +30,10 @@ public class Game {
   private final PImage NINJA_SLIME_TEX = loadImage("images/ninja_slime.png");
   private final PImage KING_SLIME_TEX = loadImage("images/king_slime.png");
   private final PImage RESTART_TEX = loadImage("images/restart.png");
+  private PImage GRASS_TEX = loadImage("images/grass.jpg");
+  private PImage PATH_TEX = loadImage("images/dirt.jpg");
+
+  private final DecimalFormat format = new DecimalFormat("0.#");
 
   private final int SECOND = 1000; // milliseconds in a second
 
@@ -105,6 +110,9 @@ public class Game {
                            color(54, 104, 186), 
                            color(73, 118, 191),
                            RESTART_TEX);
+
+    GRASS_TEX.resize(50, 50);
+    PATH_TEX.resize(50, 50);
 
     curr_tower_idx = 0;
 
@@ -257,6 +265,9 @@ public class Game {
     prev_frame_time = curr_frame_time;
     curr_frame_time = millis();
 
+    stroke(152, 183, 237);
+    fill(152, 183, 237);
+    rect(1000, 0, 400, 1000);
     draw_map();
     draw_enemies();
     draw_towers();
@@ -268,20 +279,31 @@ public class Game {
     int curr_x = 0, curr_y = 0;
 
     while (curr_y + SQ_SIZE <= height) {
+      PImage tex = null;
       switch (map[curr_y / SQ_SIZE][curr_x / SQ_SIZE]) {
         case EMPTY:
         case OCCUPIED: 
-          if(is_placing_tower) stroke(55, 32);
-          else stroke(43, 143, 46); 
+          tex = GRASS_TEX;
+          noFill();
+          if(is_placing_tower) {
+            strokeWeight(2);
+            stroke(55, 64);
+          } else {
+            noStroke(); 
+          }
 
-          fill(43, 143, 46);
           break; // will be drawn by draw_towers() 
-        case ENEMY_PATH: stroke(54, 43, 43); fill(54, 43, 43); break;
+        case ENEMY_PATH: noFill(); noStroke(); tex = PATH_TEX; break;
         case ENEMY_SPAWN: stroke(255, 0, 0); fill(255, 0, 0); break;
         case BASE: stroke(0, 0, 255); fill(0, 0, 255); break;
       }
 
+      if (tex != null) {
+        image(tex, curr_x, curr_y);
+      }
+      
       square(curr_x, curr_y, SQ_SIZE);
+      strokeWeight(1);
       
       if (curr_x + SQ_SIZE >= width - SIDE_BAR_LEN) {
         curr_x = 0;
@@ -355,10 +377,10 @@ public class Game {
     fill(255);
     float right = width - 65;
     textAlign(RIGHT);
-    text(t.get_power(), right, top);
-    text(t.get_fire_rate() + " atks/s", right, top + 35);
-    text(t.get_power() * t.get_fire_rate(), right, top + 70);
-    text(t.get_range() + " px", right, top + 105);    
+    text(format.format(t.get_power()), right, top);
+    text(format.format(t.get_fire_rate()), right, top + 35);
+    text(format.format(t.get_power() * t.get_fire_rate()), right, top + 70);
+    text(format.format(t.get_range()), right, top + 105);    
     
     if (cash < t.get_price())
       fill(255, 0, 0);
