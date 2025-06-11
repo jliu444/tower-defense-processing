@@ -42,7 +42,7 @@ This is my rendition of a tower defense game. Players will use cash earned from 
 
 
 **UML Diagram**  
-**![UML Diagram][UML.png]**  
+**![UML Diagram](UML.png)**  
 **How does it work?**
 
 When you press play, it will start you on wave 0, which does not have any mobs, allowing the player time to understand game mechanics and develop a winning strategy. Basic mobs will begin spawning at wave 1\. As the wave number increases, the difficulty level and variety of mobs will increase. Killing mobs will give the player currency, which the player can use to make upgrades or buy power ups. The goal is to keep the base safe for as long as possible and have fun\!  
