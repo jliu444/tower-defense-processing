@@ -11,13 +11,22 @@ void draw() {
   
   if (game.restarted)
     game = new Game();
-  game.draw_game();
+
   game.update();
+  game.draw_game();
   game.set_mouse_clicked(false);
+  game.set_key_released(false);
 }
 
 void keyPressed() {
-  
+
+}
+
+void keyReleased() {
+  game.set_key_released(true);
+
+  if (key == 'r' || key == 'R')
+    game = new Game();
 }
 
 void mouseClicked() {

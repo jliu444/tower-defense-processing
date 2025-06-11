@@ -1,13 +1,14 @@
 public class Tower {
   private String name;
-  private float power, fire_rate, range;
-  private int price;
+  private float fire_rate;
+  private int power, range;
+  private int price, upgrade_price;
   private PVector position;
   private PImage texture_large, texture_small;
   private int time_at_last_attack;
   private Enemy target;
   
-  public Tower(String name, float power, float fire_rate, int price, PVector position, float range, PImage texture) {
+  public Tower(String name, int power, float fire_rate, int price, PVector position, int range, PImage texture) {
     this.name = name;
     this.power = power;
     this.fire_rate = fire_rate;
@@ -22,6 +23,8 @@ public class Tower {
 
     time_at_last_attack = 0;
     target = null;
+
+    upgrade_price = price;
   }
   
   public Tower(Tower t) {
@@ -32,18 +35,20 @@ public class Tower {
     this.position = t.position;
     this.range = t.range;
 
-    texture_large = t.get_texture_large();
-    texture_small = t.get_texture_small();
+    this.texture_large = t.get_texture_large();
+    this.texture_small = t.get_texture_small();
 
-    time_at_last_attack = t.time_at_last_attack;
-    target = t.target;
+    this.time_at_last_attack = t.time_at_last_attack;
+    this.target = t.target;
+
+    this.upgrade_price = t.upgrade_price;
   }
   
   public String get_name() {
     return name;
   }
 
-  public float get_power() {
+  public int get_power() {
     return power;
   }
   
@@ -59,7 +64,7 @@ public class Tower {
     return position;
   }
 
-  public float get_range() {
+  public int get_range() {
     return range;
   }
 
@@ -79,6 +84,10 @@ public class Tower {
     return target;
   }
 
+  public int get_upgrade_price() {
+    return upgrade_price;
+  }
+
   public void set_position(PVector position) {
     this.position = position;
   }
@@ -91,8 +100,10 @@ public class Tower {
     float nearest = Float.MAX_VALUE;
     for (Enemy e : enemies) {
       float tower_to_enemy = dist(position.x + 25, position.y + 25, e.get_position().x, e.get_position().y);
-      if (tower_to_enemy <= range && tower_to_enemy < nearest)
+      if (tower_to_enemy <= range && tower_to_enemy < nearest) {
         target = e;
+        nearest = tower_to_enemy;
+      }
     }
   }
 
@@ -112,6 +123,11 @@ public class Tower {
     }
 
     return false;
+  }
+
+  public void upgrade_tower() {
+    power = round(power * 1.2);
+    upgrade_price = round(upgrade_price * 1.3);
   }
 
   public void update_tower() {

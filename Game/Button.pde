@@ -30,7 +30,7 @@ public class Button {
                 active_color = highlight2;
         }
 
-        stroke(0);
+        noStroke();
         fill(active_color);
         rect(x_pos, y_pos, _width, _height, 8.5);
         image(texture, x_pos, y_pos);
