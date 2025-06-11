@@ -53,7 +53,7 @@ public class Game {
   private boolean is_placing_tower; 
   private Tower tower_being_placed;
 
-  private Button shop_left, shop_right, buy;
+  private Button shop_left, shop_right, buy_button;
   private int curr_tower_idx;
   
   private HealthBar hp_bar;
@@ -107,7 +107,7 @@ public class Game {
                            color(73, 118, 191),
                            SHOP_RIGHT_TEX);
                            
-    buy = new Button(width - 250, 895, 100, 50, 
+    buy_button = new Button(width - 250, 895, 100, 50, 
                            color(24, 85, 184), 
                            color(54, 104, 186), 
                            color(73, 118, 191),
@@ -157,14 +157,14 @@ public class Game {
 
     final PVector zero = new PVector(0, 0);
     shop_towers = new Tower[2];
-    shop_towers[0] = new Tower("Machine Gun Tower", 5, 2.0, 100, zero, 150, MACHINE_GUN_TEX);
-    shop_towers[1] = new Tower("Laser Tower", 12, 100.0, 100, zero, 300, LAZER_TEX);
+    shop_towers[0] = new Tower("Machine Gun Tower", 20, 2.0, 100, zero, 150, MACHINE_GUN_TEX);
+    shop_towers[1] = new Tower("Laser Tower", 4, 20.0, 175, zero, 300, LAZER_TEX);
 
     enemy_types = new Enemy[4];
-    enemy_types[0] = new Enemy(24.0, 5.0, .1, zero, zero, SLIME_TEX, 25, SQ_SIZE);
-    enemy_types[1] = new Enemy(50.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 40, SQ_SIZE);
-    enemy_types[2] = new Enemy(30.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 40, SQ_SIZE);
-    enemy_types[3] = new Enemy(100.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
+    enemy_types[0] = new Enemy(120.0, 5.0, .1, zero, zero, SLIME_TEX, 15, SQ_SIZE);
+    enemy_types[1] = new Enemy(200.0, 10.0, .11, zero, zero, BLUE_SLIME_TEX, 30, SQ_SIZE);
+    enemy_types[2] = new Enemy(160.0, 7.5, .15, zero, zero, NINJA_SLIME_TEX, 30, SQ_SIZE);
+    enemy_types[3] = new Enemy(600.0, 25.0, .08, zero, zero, KING_SLIME_TEX, 100, SQ_SIZE);
 
     selected_tower = null;
 
@@ -303,6 +303,10 @@ public class Game {
     rect(1000, 0, 400, 1000);
     draw_UI();
 
+    if (paused) {
+      fill(128, 128);
+      rect(0, 0, width, height);
+    }
     if (is_game_over())
       game_over();
   }
@@ -369,7 +373,7 @@ public class Game {
     int second = curr_time / SECOND - (minute * 60);
     text(minute + ":" + (second < 10 ? "0" : "") + second, 500, 35);
 
-    hp_bar.draw_hp_bar();
+    hp_bar.draw_hp_bar(false);
 
     textSize(50);
     fill(0);
@@ -389,7 +393,7 @@ public class Game {
   private void draw_shop() {
     shop_left.draw_button();
     shop_right.draw_button();
-    buy.draw_button();
+    buy_button.draw_button();
 
     Tower t = shop_towers[curr_tower_idx];
 
@@ -494,9 +498,10 @@ public class Game {
   }
 
   public void update() {
+    // pause logic
     if ((is_game_over() && !paused) ||
-        (mouse_clicked && pause.mouse_in_button()) ||
-        (key_released && (key == 'P' || key == 'p'))) {
+        (!is_game_over() && mouse_clicked && pause.mouse_in_button()) ||
+        (!is_game_over() && key_released && (key == 'P' || key == 'p'))) {
       if (!paused) {
         time_at_pause = millis();
         pause.set_texture(RESUME_TEX);
@@ -513,8 +518,7 @@ public class Game {
 
     update_wave();
 
-    // fix spawn rate
-    if (wave > 0 && (millis() - time_at_last_spawn) >= 1000 / spawn_rate)
+    if (wave > 0 && (millis() - total_pause_time - time_at_last_spawn) >= SECOND / spawn_rate)
       spawn_enemy();
 
     if (mouse_clicked)
@@ -524,11 +528,24 @@ public class Game {
     update_enemies();
     update_buttons();
 
+    check_key_presses();
+  }
+
+  private void check_key_presses() {
+    if (!key_released) return;
+
     if (selected_tower != null &&
-        key_released && (key == 'Z' || key == 'z') &&
+        (key == 'Z' || key == 'z') &&
         cash >= selected_tower.get_upgrade_price()) {
             cash -= selected_tower.get_upgrade_price();
             selected_tower.upgrade_tower();
+    }
+
+    if (key == ' ') buy();
+
+    if (key == CODED) {
+      if (keyCode == LEFT) left();
+      if (keyCode == RIGHT) right();
     }
   }
 
@@ -537,12 +554,10 @@ public class Game {
 
     if (wave == 0 && curr_time >= 5 * SECOND) {
       ++wave;
-      spawn_rate = .2;
-    }
-
-    else if (millis() - start_time >= 5 * SECOND && (curr_time - 5 * SECOND) / (20 * SECOND) == wave) {
+      spawn_rate = 0.2;
+    } else if (curr_time >= 5 * SECOND && (curr_time - 5 * SECOND) / (20 * SECOND) == wave) {
       ++wave;
-      spawn_rate *= 2;
+      spawn_rate *= 1.5;
     }
   }
 
@@ -608,40 +623,9 @@ public class Game {
           }
 
           e.set_direction(pos_to_dir.get(pos_idx));
-          // println(e.get_direction());
       }
 
-      
-      // trying to fix issue when speed is too high, enemy moved out of path
-      //println("here");
-      //println(e.get_position());
-      //PVector move = PVector.mult(e.get_direction(), e.get_speed() * (curr_frame_time - prev_frame_time));
-      //println(move);
-      
-      //// calculate maximum movement
-      //PVector init_dir = pos_to_dir.get(pos_idx);
-      //PVector dir = pos_to_dir.get(pos_idx);
-      //PVector curr_pos = new PVector(pos_idx.x, pos_idx.y);
-      //while (dir.x == init_dir.x && dir.y == init_dir.y) {
-      //  curr_pos.add(dir);
-      //  if (curr_pos.x == base.x && curr_pos.y == base.y)
-      //    break;
-      //  dir = pos_to_dir.get(curr_pos);
-      //}
-
-      //PVector max_move = PVector.sub(curr_pos, e.get_position());
-      //println(max_move);
-
-      //if (abs(move.x) + abs(move.y) < abs(max_move.x) + abs(max_move.y)) {
-      //  println("in1");
-      //  e.set_position(PVector.add(e.get_position(), move));
-      //}
-      //else {
-      //  println("in2");
-      //  e.set_position(PVector.add(e.get_position(), max_move));
-      //}
       e.update_enemy(curr_frame_time - prev_frame_time);
-
     }
   }
 
@@ -654,29 +638,39 @@ public class Game {
       restarted = true;
 
     // shop buttons
-    if (buy.mouse_in_button() && !is_placing_tower) {
-      is_placing_tower = true;
-      buy.set_texture(CANCEL_TEX);
-      tower_being_placed = new Tower(shop_towers[curr_tower_idx]);
-    } else if (buy.mouse_in_button() && is_placing_tower) {
-      is_placing_tower = false;
-      buy.set_texture(BUY_TEX);
-      tower_being_placed = null;
+    if (buy_button.mouse_in_button()) {
+      buy();
+    } else if (shop_left.mouse_in_button()) {
+      left();
+    } else if (shop_right.mouse_in_button()) {
+      right();
     }
+  }
 
-    if (shop_left.mouse_in_button()) {
-      curr_tower_idx = (curr_tower_idx - 1 + shop_towers.length) % shop_towers.length;
+  private void buy() {
+    if (!is_placing_tower) {
+      is_placing_tower = true;
+      buy_button.set_texture(CANCEL_TEX);
+      tower_being_placed = new Tower(shop_towers[curr_tower_idx]);
+    } else {
       is_placing_tower = false;
-      buy.set_texture(BUY_TEX);
+      buy_button.set_texture(BUY_TEX);
       tower_being_placed = null;
     }
-    
-    if (shop_right.mouse_in_button()) {
-      curr_tower_idx = (curr_tower_idx + 1) % shop_towers.length;
-      is_placing_tower = false;
-      buy.set_texture(BUY_TEX);
-      tower_being_placed = null;
-    }
+  }
+  
+  private void left() {
+    curr_tower_idx = (curr_tower_idx - 1 + shop_towers.length) % shop_towers.length;
+    is_placing_tower = false;
+    buy_button.set_texture(BUY_TEX);
+    tower_being_placed = null;
+  }
+
+  private void right() {
+    curr_tower_idx = (curr_tower_idx + 1) % shop_towers.length;
+    is_placing_tower = false;
+    buy_button.set_texture(BUY_TEX);
+    tower_being_placed = null;
   }
   
   private void place_tower() {
@@ -703,7 +697,7 @@ public class Game {
 
       if (mouse_clicked && curr_grid == GridType.EMPTY && cash >= tower_being_placed.get_price()) {
         is_placing_tower = false;
-        buy.set_texture(BUY_TEX);
+        buy_button.set_texture(BUY_TEX);
         cash -= tower_being_placed.get_price();
         active_towers.add(tower_being_placed);
         active_towers.get(active_towers.size() - 1).set_position(tower_pos);

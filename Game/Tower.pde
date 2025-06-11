@@ -24,7 +24,7 @@ public class Tower {
     time_at_last_attack = 0;
     target = null;
 
-    upgrade_price = price;
+    upgrade_price = price / 2;
   }
   
   public Tower(Tower t) {

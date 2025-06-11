@@ -99,7 +99,7 @@ public class Enemy {
 
    public void draw_enemy() {
     image(texture, position.x, position.y);
-    hp_bar.draw_hp_bar();
+    hp_bar.draw_hp_bar(true);
    }
 
    public void update_enemy(float delta_time) {
@@ -107,10 +107,10 @@ public class Enemy {
       PVector move = PVector.mult(direction, speed * delta_time);
       position.add(move);
       PVector new_hp_bar_pos = PVector.add(hp_bar.get_position(), move);
-      if (new_hp_bar_pos.y + 5 >= height)
-        new_hp_bar_pos.y = position.y - 10;
       if (new_hp_bar_pos.y <= height)
-        new_hp_bar_pos.y = position.y + 55;
+        new_hp_bar_pos.y = position.y + 50;
+      if (new_hp_bar_pos.y + 5 >= height)
+        new_hp_bar_pos.y = position.y - 5;
       hp_bar.set_position(new_hp_bar_pos);
     }
    }

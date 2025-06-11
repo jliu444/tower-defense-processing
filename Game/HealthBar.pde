@@ -37,8 +37,8 @@ public class HealthBar {
         total_hp = hp;
     }
 
-    public void draw_hp_bar() {
-        //if (curr_hp < total_hp) {
+    public void draw_hp_bar(boolean show_only_when_damaged) {
+        if (!show_only_when_damaged || curr_hp < total_hp) {
             stroke(0);
             fill(6, 201, 29);
             float curr_hp_len = (curr_hp / total_hp) * width;
@@ -46,6 +46,6 @@ public class HealthBar {
 
             fill(163, 13, 8);
             rect(x_pos + curr_hp_len, y_pos, width - curr_hp_len, height);
-        //}
+        }
     }
 }
